@@ -69,8 +69,34 @@ function appendSetCookie(response, value) {
   response.setHeader?.("Set-Cookie", [existing, value]);
 }
 
+function isProduction() {
+  return process.env.NODE_ENV === "production";
+}
+
+function getSessionCookieDomain() {
+  const value = process.env.SESSION_COOKIE_DOMAIN?.trim();
+  return value ? value : null;
+}
+
 function makeCookie(name, value, maxAge) {
-  return `${name}=${encodeURIComponent(value)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}`;
+  const parts = [
+    `${name}=${encodeURIComponent(value)}`,
+    "Path=/",
+    "HttpOnly",
+    `SameSite=${isProduction() ? "None" : "Lax"}`,
+    `Max-Age=${maxAge}`,
+  ];
+
+  if (isProduction()) {
+    parts.push("Secure");
+  }
+
+  const domain = getSessionCookieDomain();
+  if (domain) {
+    parts.push(`Domain=${domain}`);
+  }
+
+  return parts.join("; ");
 }
 
 export function setSessionCookie(response, sessionId) {
